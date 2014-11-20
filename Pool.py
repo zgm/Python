@@ -1,31 +1,40 @@
-from multiprocessing import Pool
-from multiprocessing import Process
+from multiprocessing import Pool, Process, Manager, Lock, Semaphore
 
 class PoolValue:
     def __init__(self, x):
         self.key = x
 
-result = []
 
-def func(value, flag=False):
+def func(value, flag=False, list=None, lock=None):
     if flag:
         value.key *= value.key
     else:
         value.key *= 2
-    result.append(value)
-    print "test", value.key, len(result)
+    print "test", value.key
+    with lock:
+        list.append(value)
     return value
 
 
 if __name__ == '__main__':
-    for i in range(3):
+    manager = Manager()
+    list = manager.list()
+    lock = Lock()
+    sem = Semaphore(2)
+    
+    jobs = []
+    for i in range(2,8):
         value = PoolValue(i)
-        p = Process(target=func, args=(value,True))
+        p = Process(target=func, args=(value,True,list,lock))
         p.start()
-        p.join()
-        print "done"
-    for r in result:
-        print r.key
+        jobs.append(p)
+        #p.join()
+    for job in jobs:
+        job.join()
+    print list
+    for d in list:
+        print d.key,
+        #print dict[d].key
 
 '''
     pool = Pool(4)
